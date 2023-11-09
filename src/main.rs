@@ -1,5 +1,4 @@
 use std::net::TcpListener;
-
 use zero2prod::{build_server, DEFAULT_PORT, LOCAL_HOST};
 
 #[tokio::main]
