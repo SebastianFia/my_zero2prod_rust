@@ -1,15 +1,14 @@
 use reqwest;
-use zero2prod::{HTTP_PORT, LOCAL_HOST};
+use std::net::TcpListener;
 
 #[tokio::test]
 async fn health_check_works() {
-    spawn_app();
-
+    let server_address = spawn_app_and_get_address();
     let client = reqwest::Client::new();
-    let health_check_url = format!("{}:{}/health_check", LOCAL_HOST, HTTP_PORT);
+    let health_check_url = format!("{}/health_check", server_address);
 
     let response = client
-        .get(health_check_url)
+        .get(&health_check_url)
         .send()
         .await
         .expect("Failed to execute request.");
@@ -18,7 +17,12 @@ async fn health_check_works() {
     assert_eq!(Some(0), response.content_length());
 }
 
-fn spawn_app() {
-    let server = zero2prod::build_server().expect("failed to build server");
+fn spawn_app_and_get_address() -> String {
+    //bind at port 0 to get random port from os
+    let listener =  TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
+    let port = listener.local_addr().expect("failed to get socket address").port();
+    let server = zero2prod::build_server(listener).expect("failed to build server");
     let _ = tokio::spawn(server);
+
+    format!("http://127.0.0.1:{}", port)
 }
