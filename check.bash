@@ -1,5 +1,5 @@
 cargo fmt
-cargo test
 cargo clippy -- -D warnings
+cargo test
 cargo tarpaulin --ignore-tests
 cargo audit

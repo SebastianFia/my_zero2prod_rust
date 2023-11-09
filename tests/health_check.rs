@@ -1,7 +1,7 @@
-use zero2prod::{HTTP_PORT, LOCAL_HOST};
 use reqwest;
+use zero2prod::{HTTP_PORT, LOCAL_HOST};
 
-#[tokio::test] 
+#[tokio::test]
 async fn health_check_works() {
     spawn_app();
 

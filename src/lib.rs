@@ -1,9 +1,8 @@
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::dev::Server;
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 
 pub const HTTP_PORT: u32 = 8000;
-pub const LOCAL_HOST: &'static str = "http://127.0.0.1";
-
+pub const LOCAL_HOST: &str = "http://127.0.0.1";
 
 async fn greet(req: HttpRequest) -> impl Responder {
     let name = req.match_info().get("name").unwrap_or("World");
