@@ -1,5 +1,7 @@
 use reqwest;
+use sqlx::{Connection, PgConnection};
 use std::net::TcpListener;
+use zero2prod::configuration::get_configuration;
 
 fn spawn_app_and_get_address() -> String {
     //bind at port 0 to get random port from os
@@ -33,6 +35,12 @@ async fn health_check_works() {
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app_address = spawn_app_and_get_address();
+    let configuration = get_configuration().expect("Failed to read configuration");
+    let db_connection_string = configuration.database.connection_string();
+    let mut db_connection = PgConnection::connect(&db_connection_string)
+        .await
+        .expect("Failed to connect to Postgres");
+
     let client = reqwest::Client::new();
     let subscribtions_url = format!("{}/subscriptions", app_address);
 
@@ -46,6 +54,14 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         .expect("Failed to execute request.");
 
     assert_eq!(200, response.status().as_u16());
+
+    let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
+        .fetch_one(&mut db_connection)
+        .await
+        .expect("Failed to fetch from db saved subscription");
+
+    assert_eq!(saved.email, "ursula_le_guin@gmail.com");
+    assert_eq!(saved.name, "le guin");
 }
 
 #[tokio::test]
