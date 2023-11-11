@@ -3,6 +3,6 @@ pub const LOCAL_HOST: &str = "127.0.0.1";
 
 pub mod configuration;
 pub mod routes;
-pub mod startup;
+pub mod build_server;
 
-pub use startup::build_server;
+pub use build_server::build_server;
