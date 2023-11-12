@@ -1,6 +1,8 @@
 use reqwest;
-use sqlx::PgPool;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use uuid::Uuid;
+use zero2prod::configuration::DatabaseSettings;
 
 pub struct TestApp {
     pub address: String,
@@ -19,11 +21,10 @@ async fn spawn_test_app() -> TestApp {
         .port();
     let app_address = format!("http://127.0.0.1:{}", port);
 
-    //create connection pool to postgres db
-    let configuration = get_configuration().expect("Failed to read configuration");
-    let db_connection_pool = PgPool::connect(&configuration.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres");
+    //create create postgres db and connection pool to it
+    let mut configuration = get_configuration().expect("Failed to read configuration");
+    configuration.database.database_name = Uuid::new_v4().to_string();
+    let db_connection_pool = configure_db_and_get_connection_pool(&configuration.database).await;
 
     //build server and run it in tokio task
     let server =
@@ -36,11 +37,33 @@ async fn spawn_test_app() -> TestApp {
     }
 }
 
+async fn configure_db_and_get_connection_pool(config: &DatabaseSettings) -> PgPool {
+    let mut connection = PgConnection::connect(&config.connection_string_without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .await
+        .expect("Failed to create database");
+
+    let connection_pool = PgPool::connect(&config.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to migrate database");
+
+    connection_pool
+}
+
 #[tokio::test]
 async fn health_check_works() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let health_check_url = format!("{}/health_check", app.address);
+    let health_check_url = format!("{}/health_check", &app.address);
 
     let response = client
         .get(&health_check_url)
@@ -56,7 +79,7 @@ async fn health_check_works() {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let subscribtions_url = format!("{}/subscriptions", app.address);
+    let subscribtions_url = format!("{}/subscriptions", &app.address);
 
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
     let response = client
@@ -82,11 +105,11 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 async fn subscribe_returns_a_400_when_data_is_missing() {
     let app = spawn_test_app().await;
     let client = reqwest::Client::new();
-    let subscriptions_url = format!("{}/subscriptions", app.address);
+    let subscriptions_url = format!("{}/subscriptions", &app.address);
 
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
-        ("email=ursula_le_guin%40gmail.com", "missing the name"),
+        ("email=ursula_le_guin%41gmail.com", "missing the name"),
         ("", "missing both name and email"),
     ];
 
