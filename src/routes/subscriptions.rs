@@ -41,7 +41,7 @@ pub async fn subscribe(
 
     match query_result {
         Ok(_) => {
-            tracing::info!("New subscriber detalis have been saved");
+            tracing::info!(excited = "true", "New subscriber detalis have been saved");
             HttpResponse::Ok().finish()
         }
         Err(e) => {
