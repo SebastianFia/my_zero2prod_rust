@@ -2,10 +2,15 @@ use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry, fmt::MakeWriter};
+use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 
-pub fn get_subscriber<Sink>(name: String, env_filter: String, sink: Sink)  -> impl Subscriber + Send + Sync 
-where Sink: for<'a> MakeWriter<'a> + Sync + Send + 'static
+pub fn get_subscriber<Sink>(
+    name: String,
+    env_filter: String,
+    sink: Sink,
+) -> impl Subscriber + Send + Sync
+where
+    Sink: for<'a> MakeWriter<'a> + Sync + Send + 'static,
 {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
