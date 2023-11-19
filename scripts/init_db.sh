@@ -22,7 +22,7 @@ DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
 DB_NAME="${POSTGRES_DB:=newsletter}"
 DB_PORT="${POSTGRES_PORT:=5432}"
 
-if ![ "$SKIP_DOCKER" = "true" ]; then
+if [[ -z "${SKIP_DOCKER}" ]]; then
   sudo docker run \
     -e POSTGRES_USER=${DB_USER} \
     -e POSTGRES_PASSWORD=${DB_PASSWORD} \
